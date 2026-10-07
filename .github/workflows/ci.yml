@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ieum
+          POSTGRES_PASSWORD: ieum
+          POSTGRES_DB: ieum_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ieum -d ieum_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # build.gradle 의 test 태스크가 localhost:5432/ieum_test 를 쓰고, dev 프로필이 이 두 값을 읽는다.
+    env:
+      DB_USERNAME: ieum
+      DB_PASSWORD: ieum
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test
+        run: ./gradlew build
